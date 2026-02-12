@@ -24,6 +24,11 @@ pandas>=2.1
 # Monitoring énergétique (Green IT)
 codecarbon>=2.3
 
+# Training / Fine-tuning
+datasets>=2.16
+accelerate>=0.25
+evaluate>=0.4
+
 # Tests
 pytest>=7.4
 pytest-cov>=4.1
@@ -31,3 +36,6 @@ pytest-cov>=4.1
 # Utilitaires
 python-dotenv>=1.0
 loguru>=0.7
+matplotlib>=3.8
+seaborn>=0.13
+wordcloud>=1.9
