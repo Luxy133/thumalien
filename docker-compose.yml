@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  app:
+    build: .
+    container_name: thumalien-app
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+    depends_on:
+      - db
+    environment:
+      - PYTHONPATH=/app
+
+  db:
+    image: postgres:16-alpine
+    container_name: thumalien-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-thumalien}
+      POSTGRES_USER: ${POSTGRES_USER:-thumalien}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-thumalien_secret}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+
+volumes:
+  pgdata:

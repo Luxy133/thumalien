@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environnement virtuel
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Variables d'environnement
+.env
+
+# Données
+data/raw/*
+data/processed/*
+data/models/*
+data/monitoring/*
+!data/**/.gitkeep
+
+# Modèles ML (trop volumineux)
+*.pt
+*.pth
+*.bin
+*.onnx
+*.h5
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+emissions.csv
+
+# Jupyter
+.ipynb_checkpoints/
