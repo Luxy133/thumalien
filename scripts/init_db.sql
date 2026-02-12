@@ -37,6 +37,20 @@ CREATE TABLE IF NOT EXISTS energy_reports (
     recorded_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS analysis_sessions (
+    id SERIAL PRIMARY KEY,
+    query VARCHAR(200) NOT NULL,
+    lang VARCHAR(5),
+    num_posts INTEGER,
+    num_fiable INTEGER DEFAULT 0,
+    num_douteux INTEGER DEFAULT 0,
+    num_fake INTEGER DEFAULT 0,
+    total_emissions_co2 FLOAT DEFAULT 0.0,
+    total_energy_kwh FLOAT DEFAULT 0.0,
+    duration_seconds FLOAT DEFAULT 0.0,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Index pour les requêtes fréquentes
 CREATE INDEX IF NOT EXISTS idx_posts_author ON posts(author_handle);
 CREATE INDEX IF NOT EXISTS idx_posts_created ON posts(created_at);

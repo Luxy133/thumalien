@@ -277,6 +277,54 @@ def render_energy(energy_summary):
         st.dataframe(task_df[["task", "duration_seconds", "emissions_kg_co2", "energy_kwh"]], use_container_width=True)
 
 
+def render_history():
+    """Onglet Historique des analyses."""
+    st.header("Historique des analyses")
+
+    try:
+        from src.database.connection import get_session
+        from src.database.repository import SessionRepository
+
+        db_session = get_session()
+        repo = SessionRepository(db_session)
+        sessions = repo.get_history(limit=20)
+        db_session.close()
+
+        if not sessions:
+            st.info("Aucune analyse sauvegardée. Coche 'Sauvegarder en BDD' dans la sidebar.")
+            return
+
+        rows = []
+        for s in sessions:
+            rows.append({
+                "Date": s.created_at.strftime("%Y-%m-%d %H:%M") if s.created_at else "?",
+                "Requête": s.query,
+                "Langue": s.lang or "Toutes",
+                "Posts": s.num_posts,
+                "Fiables": s.num_fiable,
+                "Douteux": s.num_douteux,
+                "Fake": s.num_fake,
+                "CO2 (kg)": f"{s.total_emissions_co2:.6f}",
+                "Durée (s)": f"{s.duration_seconds:.1f}",
+            })
+
+        st.dataframe(pd.DataFrame(rows), use_container_width=True)
+
+        # Graphique d'évolution
+        if len(sessions) > 1:
+            hist_df = pd.DataFrame(rows)
+            fig = px.bar(
+                hist_df, x="Date", y=["Fiables", "Douteux", "Fake"],
+                barmode="stack", title="Évolution des analyses",
+                color_discrete_map={"Fiables": "#2ecc71", "Douteux": "#f39c12", "Fake": "#e74c3c"},
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+    except Exception as e:
+        st.warning(f"Base de données non disponible : {e}")
+        st.info("Lance PostgreSQL avec `docker-compose up db` et initialise avec `make db-init`.")
+
+
 # ---------- App principale ----------
 def main():
     st.title("Thumalien - Détection de Fake News sur Bluesky")
@@ -298,6 +346,7 @@ def main():
         lang_options = {"Toutes": None, "Français": "fr", "English": "en"}
         lang_filter = st.selectbox("Langue", list(lang_options.keys()))
         num_posts = st.slider("Nombre de posts", 10, 200, 50)
+        save_to_db = st.checkbox("Sauvegarder en BDD", value=False)
         analyze_btn = st.button("Lancer l'analyse", type="primary", use_container_width=True)
 
     # Lancement de l'analyse
@@ -333,6 +382,21 @@ def main():
 
             st.session_state["results"] = results
             st.session_state["energy"] = energy
+            st.session_state["last_query"] = search_query
+            st.session_state["last_lang"] = lang
+
+            # Sauvegarde en BDD si demandé
+            if save_to_db and results:
+                try:
+                    from src.database.connection import get_session
+                    from src.database.repository import save_pipeline_results
+                    db_session = get_session()
+                    save_pipeline_results(db_session, search_query, lang, results, energy)
+                    db_session.close()
+                    st.write("Résultats sauvegardés en base de données.")
+                except Exception as db_err:
+                    st.warning(f"Sauvegarde BDD échouée : {db_err}")
+
             status.update(label=f"Analyse terminée — {len(results)} posts", state="complete")
 
     # Affichage des résultats
@@ -340,15 +404,17 @@ def main():
     energy = st.session_state.get("energy")
 
     if not results:
-        tab_overview, tab_details, tab_emotions, tab_energy = st.tabs(
-            ["Vue d'ensemble", "Détails", "Émotions", "Green IT"]
+        tab_overview, tab_details, tab_emotions, tab_energy, tab_history = st.tabs(
+            ["Vue d'ensemble", "Détails", "Émotions", "Green IT", "Historique"]
         )
         with tab_overview:
             st.info("Lance une analyse depuis la sidebar pour voir les résultats.")
+        with tab_history:
+            render_history()
         return
 
-    tab_overview, tab_details, tab_emotions, tab_energy = st.tabs(
-        ["Vue d'ensemble", "Détails", "Émotions", "Green IT"]
+    tab_overview, tab_details, tab_emotions, tab_energy, tab_history = st.tabs(
+        ["Vue d'ensemble", "Détails", "Émotions", "Green IT", "Historique"]
     )
 
     with tab_overview:
@@ -362,6 +428,9 @@ def main():
 
     with tab_energy:
         render_energy(energy)
+
+    with tab_history:
+        render_history()
 
 
 if __name__ == "__main__":
