@@ -22,6 +22,7 @@ from src.models.fake_news_detector import FakeNewsDetector
 from src.models.emotion_analyzer import EmotionAnalyzer
 from src.explainability.explainer import PredictionExplainer
 from src.monitoring.energy_tracker import EnergyTracker
+from src.verification.cross_verifier import CrossSourceVerifier
 
 import random
 from datetime import datetime, timezone
@@ -42,31 +43,42 @@ EMOTION_COLORS = {
 
 # ---------- Données démo ----------
 DEMO_POSTS = [
-    {"text": "Le ministre de la Santé a confirmé l'extension du programme de vaccination pour les 12-18 ans, conformément aux recommandations de la HAS.", "author_handle": "info-sante.bsky.social", "label": "fiable", "emotion": "neutre"},
-    {"text": "URGENT !! Le gouvernement cache la vérité sur les effets secondaires des vaccins ! Des milliers de morts dissimulés ! Partagez avant censure !!!", "author_handle": "verite-cache.bsky.social", "label": "fake", "emotion": "peur"},
-    {"text": "Selon une étude de l'INSERM publiée dans The Lancet, le nouveau traitement réduit la mortalité de 30% chez les patients à risque.", "author_handle": "sciences-actu.bsky.social", "label": "fiable", "emotion": "joie"},
-    {"text": "On nous ment depuis le début ! Les élites mondiales contrôlent tout avec la 5G. RÉVEILLEZ-VOUS !", "author_handle": "reveil-citoyen.bsky.social", "label": "fake", "emotion": "colère"},
-    {"text": "Le taux de chômage a diminué de 0.3% ce trimestre selon les chiffres de l'INSEE.", "author_handle": "eco-france.bsky.social", "label": "fiable", "emotion": "neutre"},
-    {"text": "Des sources proches du dossier évoquent une possible réforme, mais aucune confirmation officielle n'a été donnée.", "author_handle": "media-info.bsky.social", "label": "douteux", "emotion": "surprise"},
-    {"text": "BREAKING: Un scientifique renommé affirme que boire du jus de citron guérit le cancer. Big Pharma ne veut pas que vous sachiez !", "author_handle": "sante-naturelle.bsky.social", "label": "fake", "emotion": "surprise"},
-    {"text": "L'Assemblée nationale a voté la loi sur la transition énergétique avec 342 voix pour et 128 contre.", "author_handle": "politique-fr.bsky.social", "label": "fiable", "emotion": "neutre"},
-    {"text": "Certains experts remettent en question les chiffres officiels du PIB, parlant de méthodologie contestable.", "author_handle": "debat-eco.bsky.social", "label": "douteux", "emotion": "tristesse"},
-    {"text": "La mairie a inauguré le nouveau parc urbain de 5 hectares dans le quartier nord. 200 arbres ont été plantés.", "author_handle": "ville-info.bsky.social", "label": "fiable", "emotion": "joie"},
-    {"text": "Les chemtrails sont la preuve que le gouvernement empoisonne la population ! Regardez le ciel et ouvrez les yeux !!!", "author_handle": "complot-alert.bsky.social", "label": "fake", "emotion": "colère"},
-    {"text": "Le rapport du GIEC indique une hausse des températures de 1.5°C d'ici 2030 si les émissions ne sont pas réduites.", "author_handle": "climat-actu.bsky.social", "label": "fiable", "emotion": "peur"},
-    {"text": "Une vidéo virale prétend montrer un OVNI à Toulouse. Les experts n'ont pas encore confirmé l'authenticité des images.", "author_handle": "buzz-france.bsky.social", "label": "douteux", "emotion": "surprise"},
-    {"text": "Le match PSG-Marseille s'est terminé sur un score de 2-1, avec un doublé de la recrue star.", "author_handle": "sports-live.bsky.social", "label": "fiable", "emotion": "joie"},
-    {"text": "EXCLUSIF : Un ancien employé révèle que les résultats des élections ont été truqués par un logiciel secret !!!", "author_handle": "scoop-politique.bsky.social", "label": "fake", "emotion": "colère"},
-    {"text": "La BCE maintient ses taux d'intérêt inchangés, conformément aux attentes des analystes.", "author_handle": "finance-eu.bsky.social", "label": "fiable", "emotion": "neutre"},
-    {"text": "Des témoins affirment avoir vu des phénomènes étranges près de la centrale. L'exploitant dément tout incident.", "author_handle": "local-news.bsky.social", "label": "douteux", "emotion": "peur"},
-    {"text": "SCANDALE ! Les politiciens se sont augmentés de 50% en secret pendant que les Français souffrent !", "author_handle": "indignes.bsky.social", "label": "fake", "emotion": "colère"},
-    {"text": "Le festival de Cannes a décerné la Palme d'Or au réalisateur japonais pour son film sur l'immigration.", "author_handle": "culture-actu.bsky.social", "label": "fiable", "emotion": "joie"},
-    {"text": "Un article circule affirmant que le wifi cause des tumeurs cérébrales. L'OMS n'a pas classé le wifi comme cancérigène.", "author_handle": "fact-check-fr.bsky.social", "label": "douteux", "emotion": "neutre"},
-    {"text": "Magnifique victoire de l'équipe de France en finale ! Un moment historique pour le sport français !", "author_handle": "sport-passion.bsky.social", "label": "fiable", "emotion": "joie"},
-    {"text": "ILS NE VEULENT PAS QUE VOUS VOYIEZ ÇA : les preuves irréfutables que la Terre est plate sont enfin révélées !", "author_handle": "terre-plate-fr.bsky.social", "label": "fake", "emotion": "surprise"},
-    {"text": "Le prix du pétrole a chuté de 5% suite aux annonces de l'OPEP sur l'augmentation de la production.", "author_handle": "marches-info.bsky.social", "label": "fiable", "emotion": "neutre"},
-    {"text": "Cette situation est vraiment déprimante. Les hôpitaux sont surchargés et personne ne fait rien.", "author_handle": "citoyen-lambda.bsky.social", "label": "douteux", "emotion": "tristesse"},
-    {"text": "Attention arnaque ! Un faux site gouvernemental collecte vos données personnelles. Ne cliquez pas sur ce lien.", "author_handle": "cyber-alerte.bsky.social", "label": "fiable", "emotion": "peur"},
+    {"text": "Le ministre de la Santé a confirmé l'extension du programme de vaccination pour les 12-18 ans, conformément aux recommandations de la HAS.", "author_handle": "info-sante.bsky.social", "label": "fiable", "emotion": "neutre", "lang_tag": "fr"},
+    {"text": "URGENT !! Le gouvernement cache la vérité sur les effets secondaires des vaccins ! Des milliers de morts dissimulés ! Partagez avant censure !!!", "author_handle": "verite-cache.bsky.social", "label": "fake", "emotion": "peur", "lang_tag": "fr"},
+    {"text": "Selon une étude de l'INSERM publiée dans The Lancet, le nouveau traitement réduit la mortalité de 30% chez les patients à risque.", "author_handle": "sciences-actu.bsky.social", "label": "fiable", "emotion": "joie", "lang_tag": "fr"},
+    {"text": "On nous ment depuis le début ! Les élites mondiales contrôlent tout avec la 5G. RÉVEILLEZ-VOUS !", "author_handle": "reveil-citoyen.bsky.social", "label": "fake", "emotion": "colère", "lang_tag": "fr"},
+    {"text": "Le taux de chômage a diminué de 0.3% ce trimestre selon les chiffres de l'INSEE.", "author_handle": "eco-france.bsky.social", "label": "fiable", "emotion": "neutre", "lang_tag": "fr"},
+    {"text": "Des sources proches du dossier évoquent une possible réforme, mais aucune confirmation officielle n'a été donnée.", "author_handle": "media-info.bsky.social", "label": "douteux", "emotion": "surprise", "lang_tag": "fr"},
+    {"text": "BREAKING: Un scientifique renommé affirme que boire du jus de citron guérit le cancer. Big Pharma ne veut pas que vous sachiez !", "author_handle": "sante-naturelle.bsky.social", "label": "fake", "emotion": "surprise", "lang_tag": "fr"},
+    {"text": "L'Assemblée nationale a voté la loi sur la transition énergétique avec 342 voix pour et 128 contre.", "author_handle": "politique-fr.bsky.social", "label": "fiable", "emotion": "neutre", "lang_tag": "fr"},
+    {"text": "Certains experts remettent en question les chiffres officiels du PIB, parlant de méthodologie contestable.", "author_handle": "debat-eco.bsky.social", "label": "douteux", "emotion": "tristesse", "lang_tag": "fr"},
+    {"text": "La mairie a inauguré le nouveau parc urbain de 5 hectares dans le quartier nord. 200 arbres ont été plantés.", "author_handle": "ville-info.bsky.social", "label": "fiable", "emotion": "joie", "lang_tag": "fr"},
+    {"text": "Les chemtrails sont la preuve que le gouvernement empoisonne la population ! Regardez le ciel et ouvrez les yeux !!!", "author_handle": "complot-alert.bsky.social", "label": "fake", "emotion": "colère", "lang_tag": "fr"},
+    {"text": "Le rapport du GIEC indique une hausse des températures de 1.5°C d'ici 2030 si les émissions ne sont pas réduites.", "author_handle": "climat-actu.bsky.social", "label": "fiable", "emotion": "peur", "lang_tag": "fr"},
+    {"text": "Une vidéo virale prétend montrer un OVNI à Toulouse. Les experts n'ont pas encore confirmé l'authenticité des images.", "author_handle": "buzz-france.bsky.social", "label": "douteux", "emotion": "surprise", "lang_tag": "fr"},
+    {"text": "Le match PSG-Marseille s'est terminé sur un score de 2-1, avec un doublé de la recrue star.", "author_handle": "sports-live.bsky.social", "label": "fiable", "emotion": "joie", "lang_tag": "fr"},
+    {"text": "EXCLUSIF : Un ancien employé révèle que les résultats des élections ont été truqués par un logiciel secret !!!", "author_handle": "scoop-politique.bsky.social", "label": "fake", "emotion": "colère", "lang_tag": "fr"},
+    {"text": "La BCE maintient ses taux d'intérêt inchangés, conformément aux attentes des analystes.", "author_handle": "finance-eu.bsky.social", "label": "fiable", "emotion": "neutre", "lang_tag": "fr"},
+    {"text": "Des témoins affirment avoir vu des phénomènes étranges près de la centrale. L'exploitant dément tout incident.", "author_handle": "local-news.bsky.social", "label": "douteux", "emotion": "peur", "lang_tag": "fr"},
+    {"text": "SCANDALE ! Les politiciens se sont augmentés de 50% en secret pendant que les Français souffrent !", "author_handle": "indignes.bsky.social", "label": "fake", "emotion": "colère", "lang_tag": "fr"},
+    {"text": "Le festival de Cannes a décerné la Palme d'Or au réalisateur japonais pour son film sur l'immigration.", "author_handle": "culture-actu.bsky.social", "label": "fiable", "emotion": "joie", "lang_tag": "fr"},
+    {"text": "Un article circule affirmant que le wifi cause des tumeurs cérébrales. L'OMS n'a pas classé le wifi comme cancérigène.", "author_handle": "fact-check-fr.bsky.social", "label": "douteux", "emotion": "neutre", "lang_tag": "fr"},
+    {"text": "Magnifique victoire de l'équipe de France en finale ! Un moment historique pour le sport français !", "author_handle": "sport-passion.bsky.social", "label": "fiable", "emotion": "joie", "lang_tag": "fr"},
+    {"text": "ILS NE VEULENT PAS QUE VOUS VOYIEZ ÇA : les preuves irréfutables que la Terre est plate sont enfin révélées !", "author_handle": "terre-plate-fr.bsky.social", "label": "fake", "emotion": "surprise", "lang_tag": "fr"},
+    {"text": "Le prix du pétrole a chuté de 5% suite aux annonces de l'OPEP sur l'augmentation de la production.", "author_handle": "marches-info.bsky.social", "label": "fiable", "emotion": "neutre", "lang_tag": "fr"},
+    {"text": "Cette situation est vraiment déprimante. Les hôpitaux sont surchargés et personne ne fait rien.", "author_handle": "citoyen-lambda.bsky.social", "label": "douteux", "emotion": "tristesse", "lang_tag": "fr"},
+    {"text": "Attention arnaque ! Un faux site gouvernemental collecte vos données personnelles. Ne cliquez pas sur ce lien.", "author_handle": "cyber-alerte.bsky.social", "label": "fiable", "emotion": "peur", "lang_tag": "fr"},
+    # --- Posts anglais ---
+    {"text": "The WHO confirmed the new vaccine is safe and effective for all age groups.", "author_handle": "health-news.bsky.social", "label": "fiable", "emotion": "neutre", "lang_tag": "en"},
+    {"text": "SHOCKING!! Government is hiding alien technology in Area 51!!! Share before they delete this!!!", "author_handle": "truth-seeker.bsky.social", "label": "fake", "emotion": "peur", "lang_tag": "en"},
+    {"text": "According to a Stanford study published in Nature, the new treatment reduces mortality by 25%.", "author_handle": "science-daily.bsky.social", "label": "fiable", "emotion": "joie", "lang_tag": "en"},
+    {"text": "WAKE UP PEOPLE! The moon landing was FAKED by NASA. Here's the proof they don't want you to see!!!", "author_handle": "conspiracy-hub.bsky.social", "label": "fake", "emotion": "colère", "lang_tag": "en"},
+    {"text": "The Federal Reserve kept interest rates unchanged, in line with market expectations.", "author_handle": "finance-wire.bsky.social", "label": "fiable", "emotion": "neutre", "lang_tag": "en"},
+    {"text": "Some researchers question the methodology behind the latest GDP figures, calling them unreliable.", "author_handle": "econ-debate.bsky.social", "label": "douteux", "emotion": "tristesse", "lang_tag": "en"},
+    {"text": "BREAKING: Secret documents reveal the election was rigged by a shadow organization!!!", "author_handle": "deep-state-watch.bsky.social", "label": "fake", "emotion": "colère", "lang_tag": "en"},
+    {"text": "NASA's James Webb telescope captured stunning new images of a distant galaxy cluster.", "author_handle": "space-news.bsky.social", "label": "fiable", "emotion": "surprise", "lang_tag": "en"},
+    {"text": "A viral video claims to show a UFO over London. Experts have not yet verified the footage.", "author_handle": "uk-buzz.bsky.social", "label": "douteux", "emotion": "surprise", "lang_tag": "en"},
+    {"text": "The Premier League final ended 3-2 in a dramatic last-minute goal by the home team.", "author_handle": "sports-uk.bsky.social", "label": "fiable", "emotion": "joie", "lang_tag": "en"},
 ]
 
 
@@ -121,6 +133,53 @@ def generate_demo_results():
                 ]
             }
 
+        # Vérification croisée synthétique
+        if post["label"] == "fiable":
+            v_score = round(random.uniform(0.6, 0.95), 3)
+        elif post["label"] == "fake":
+            v_score = round(random.uniform(0.05, 0.35), 3)
+        else:
+            v_score = round(random.uniform(0.3, 0.65), 3)
+
+        v_confidence = round(random.uniform(0.3, 0.9), 3)
+        n_sources = random.randint(1, 4)
+
+        verification = {
+            "sources": {
+                "web_search": {
+                    "source_name": "web_search", "available": True,
+                    "num_results": random.randint(1, 5),
+                    "corroboration_score": round(random.uniform(0.2, 0.9), 3),
+                    "confidence": round(random.uniform(0.3, 0.8), 3),
+                    "top_sources": [], "error": None,
+                },
+                "fact_check": {
+                    "source_name": "fact_check", "available": random.choice([True, False]),
+                    "num_results": random.randint(0, 3),
+                    "corroboration_score": round(v_score + random.uniform(-0.1, 0.1), 3),
+                    "confidence": round(random.uniform(0.2, 0.9), 3),
+                    "top_sources": [], "error": None,
+                },
+                "news": {
+                    "source_name": "news", "available": True,
+                    "num_results": random.randint(1, 5),
+                    "corroboration_score": round(v_score + random.uniform(-0.15, 0.15), 3),
+                    "confidence": round(random.uniform(0.3, 0.85), 3),
+                    "top_sources": [], "error": None,
+                },
+                "bluesky": {
+                    "source_name": "bluesky", "available": random.choice([True, False]),
+                    "num_results": random.randint(0, 10),
+                    "corroboration_score": round(random.uniform(0.2, 0.8), 3),
+                    "confidence": round(random.uniform(0.1, 0.6), 3),
+                    "top_sources": [], "error": None,
+                },
+            },
+            "verification_score": v_score,
+            "verification_confidence": v_confidence,
+            "num_sources_available": n_sources,
+        }
+
         results.append({
             "uri": f"at://did:plc:demo{i}/app.bsky.feed.post/{i:03d}",
             "cid": f"bafyreidemo{i:04d}",
@@ -129,8 +188,8 @@ def generate_demo_results():
             "text": post["text"],
             "clean_text": post["text"].lower(),
             "tokens": post["text"].lower().split()[:10],
-            "detected_lang": "fr",
-            "lang": ["fr"],
+            "detected_lang": post["lang_tag"],
+            "lang": [post["lang_tag"]],
             "created_at": "2025-06-15T10:00:00Z",
             "collected_at": datetime.now(timezone.utc).isoformat(),
             "like_count": random.randint(0, 500),
@@ -147,6 +206,7 @@ def generate_demo_results():
                 "scores": emo_scores,
             },
             "explanation": explanation,
+            "verification": verification,
         })
 
     energy = {
@@ -204,17 +264,38 @@ def run_analysis(collector, detector, emotion_analyzer, query, lang, limit):
     with tracker.track("classification"):
         predictions = detector.predict_batch(texts)
 
-    # 4. Émotions
+    # 4. Vérification croisée
+    cross_verifier = CrossSourceVerifier(collector=collector)
+    with tracker.track("verification"):
+        verifications = cross_verifier.verify_batch(texts)
+
+    # 5. Émotions
     with tracker.track("emotion"):
         emotions = emotion_analyzer.analyze_batch(texts)
 
-    # 5. Explicabilité
+    # 6. Explicabilité
     explainer = PredictionExplainer(detector.model, detector.tokenizer)
     with tracker.track("explicabilite"):
         results = []
-        for post, pred, emo in zip(processed, predictions, emotions):
-            entry = {**post, "credibility": pred, "emotion": emo, "explanation": None}
-            if pred["label"] in ("douteux", "fake") and pred["confidence"] > 0.6:
+        for post, pred, emo, verif in zip(processed, predictions, emotions, verifications):
+            # Combiner scores si vérification disponible
+            credibility = pred
+            if verif and verif.get("verification_confidence", 0) > 0:
+                combined_scores = CrossSourceVerifier.combine_with_credibility(
+                    pred["scores"],
+                    verif["verification_score"],
+                    verif["verification_confidence"],
+                )
+                combined_label = max(combined_scores, key=combined_scores.get)
+                credibility = {
+                    "label": combined_label,
+                    "confidence": pred["confidence"],
+                    "scores": combined_scores,
+                    "original_scores": pred["scores"],
+                }
+
+            entry = {**post, "credibility": credibility, "emotion": emo, "explanation": None, "verification": verif}
+            if credibility["label"] in ("douteux", "fake") and credibility["confidence"] > 0.6:
                 expl = explainer.explain(post["clean_text"])
                 entry["explanation"] = {"top_words": expl["top_influential_words"][:5]}
             results.append(entry)
@@ -524,6 +605,115 @@ def render_history():
         st.info("Lance PostgreSQL avec `docker-compose up db` et initialise avec `make db-init`.")
 
 
+def render_verification(results):
+    """Onglet Vérification croisée des sources."""
+    st.header("Vérification croisée des sources")
+
+    verified = [r for r in results if r.get("verification")]
+    if not verified:
+        st.info("Aucune donnée de vérification disponible. Lancez une analyse avec la vérification activée.")
+        return
+
+    # Jauge de corroboration globale
+    avg_v_score = sum(r["verification"]["verification_score"] for r in verified) / len(verified)
+    avg_v_conf = sum(r["verification"]["verification_confidence"] for r in verified) / len(verified)
+    avg_sources = sum(r["verification"]["num_sources_available"] for r in verified) / len(verified)
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Score corroboration moyen", f"{avg_v_score:.1%}")
+    col2.metric("Confiance vérification", f"{avg_v_conf:.1%}")
+    col3.metric("Sources disponibles (moy.)", f"{avg_sources:.1f}")
+
+    fig_gauge = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=avg_v_score * 100,
+        title={"text": "Corroboration globale"},
+        number={"suffix": "%"},
+        gauge={
+            "axis": {"range": [0, 100]},
+            "bar": {"color": "#9b59b6"},
+            "steps": [
+                {"range": [0, 30], "color": "#fadbd8"},
+                {"range": [30, 60], "color": "#fdebd0"},
+                {"range": [60, 100], "color": "#d5f5e3"},
+            ],
+            "threshold": {"line": {"color": "black", "width": 2}, "value": avg_v_score * 100},
+        },
+    ))
+    fig_gauge.update_layout(height=250)
+    st.plotly_chart(fig_gauge, use_container_width=True)
+
+    # Bar chart par source
+    st.subheader("Scores par source de vérification")
+    source_names = ["web_search", "fact_check", "news", "bluesky"]
+    source_labels = {"web_search": "Web Search", "fact_check": "Fact Check", "news": "Actualités", "bluesky": "Bluesky"}
+    source_colors = {"web_search": "#3498db", "fact_check": "#e74c3c", "news": "#2ecc71", "bluesky": "#9b59b6"}
+
+    avg_by_source = {}
+    for sname in source_names:
+        scores = []
+        for r in verified:
+            src_data = r["verification"].get("sources", {}).get(sname, {})
+            if src_data.get("available"):
+                scores.append(src_data.get("corroboration_score", 0.5))
+        avg_by_source[sname] = sum(scores) / len(scores) if scores else 0
+
+    source_df = pd.DataFrame([
+        {"Source": source_labels.get(k, k), "Score": v, "source_key": k}
+        for k, v in avg_by_source.items()
+    ])
+    fig = px.bar(
+        source_df, x="Source", y="Score", color="Source",
+        color_discrete_map={source_labels[k]: v for k, v in source_colors.items()},
+        title="Score de corroboration moyen par source",
+    )
+    fig.update_yaxes(range=[0, 1])
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Scatter: Score modèle vs Score vérification
+    st.subheader("Modèle vs Vérification")
+    scatter_data = []
+    for r in verified:
+        scatter_data.append({
+            "Score Fiable (modèle)": r["credibility"]["scores"].get("fiable", 0),
+            "Score Vérification": r["verification"]["verification_score"],
+            "Label": r["credibility"]["label"],
+            "Auteur": r.get("author_handle", ""),
+        })
+    scatter_df = pd.DataFrame(scatter_data)
+    fig = px.scatter(
+        scatter_df, x="Score Fiable (modèle)", y="Score Vérification",
+        color="Label", color_discrete_map=LABEL_COLORS,
+        hover_data=["Auteur"],
+        title="Corrélation entre score du modèle et vérification croisée",
+    )
+    fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=1, line=dict(dash="dash", color="gray"))
+    fig.update_xaxes(range=[0, 1])
+    fig.update_yaxes(range=[0, 1])
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Détail par post
+    st.subheader("Détail par post")
+    for i, r in enumerate(verified[:10], 1):
+        v = r["verification"]
+        label = r["credibility"]["label"]
+        color = LABEL_COLORS.get(label, "#95a5a6")
+        with st.expander(f"#{i} — @{r.get('author_handle', '?')} — :{color}[{label.upper()}] — Vérif: {v['verification_score']:.0%}"):
+            st.markdown(f"**Texte :** {r['text'][:200]}")
+            mc1, mc2, mc3 = st.columns(3)
+            mc1.metric("Score vérification", f"{v['verification_score']:.1%}")
+            mc2.metric("Confiance", f"{v['verification_confidence']:.1%}")
+            mc3.metric("Sources", v["num_sources_available"])
+
+            for sname in source_names:
+                src = v.get("sources", {}).get(sname, {})
+                if src.get("available"):
+                    st.progress(
+                        src.get("corroboration_score", 0.5),
+                        text=f"{source_labels.get(sname, sname)} : {src.get('corroboration_score', 0.5):.1%} (confiance: {src.get('confidence', 0):.1%})",
+                    )
+
+
 # ---------- App principale ----------
 def main():
     st.title("Thumalien - Détection de Fake News sur Bluesky")
@@ -556,7 +746,7 @@ def main():
     # Mode démo
     if demo_btn:
         with st.status("Chargement de la démo...", expanded=True) as status:
-            st.write("Génération de 25 posts d'exemple...")
+            st.write(f"Génération de {len(DEMO_POSTS)} posts d'exemple...")
             results, energy = generate_demo_results()
             st.session_state["results"] = results
             st.session_state["energy"] = energy
@@ -617,8 +807,8 @@ def main():
     energy = st.session_state.get("energy")
 
     if not results:
-        tab_overview, tab_details, tab_emotions, tab_energy, tab_history = st.tabs(
-            ["Vue d'ensemble", "Détails", "Émotions", "Green IT", "Historique"]
+        tab_overview, tab_details, tab_emotions, tab_verification, tab_energy, tab_history = st.tabs(
+            ["Vue d'ensemble", "Détails", "Émotions", "Vérification", "Green IT", "Historique"]
         )
         with tab_overview:
             st.info("Lance une analyse depuis la sidebar pour voir les résultats.")
@@ -626,18 +816,42 @@ def main():
             render_history()
         return
 
-    tab_overview, tab_details, tab_emotions, tab_energy, tab_history = st.tabs(
-        ["Vue d'ensemble", "Détails", "Émotions", "Green IT", "Historique"]
+    # --- Filtre par langue ---
+    n_fr = sum(1 for r in results if r.get("detected_lang") == "fr")
+    n_en = sum(1 for r in results if r.get("detected_lang") == "en")
+    lang_view = st.radio(
+        "Vue par langue",
+        ["Toutes les langues", "Français", "English"],
+        horizontal=True,
+    )
+    lang_filter_map = {"Toutes les langues": None, "Français": "fr", "English": "en"}
+    selected_lang = lang_filter_map[lang_view]
+
+    if selected_lang:
+        filtered_results = [r for r in results if r.get("detected_lang") == selected_lang]
+    else:
+        filtered_results = results
+
+    st.caption(
+        f"{len(filtered_results)} posts affichés — "
+        f"Français : {n_fr} | English : {n_en} | Total : {len(results)}"
+    )
+
+    tab_overview, tab_details, tab_emotions, tab_verification, tab_energy, tab_history = st.tabs(
+        ["Vue d'ensemble", "Détails", "Émotions", "Vérification", "Green IT", "Historique"]
     )
 
     with tab_overview:
-        render_overview(results)
+        render_overview(filtered_results)
 
     with tab_details:
-        render_details(results)
+        render_details(filtered_results)
 
     with tab_emotions:
-        render_emotions(results)
+        render_emotions(filtered_results)
+
+    with tab_verification:
+        render_verification(filtered_results)
 
     with tab_energy:
         render_energy(energy)
